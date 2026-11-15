@@ -133,6 +133,9 @@ function Brand({ state, size = 'lg' }: { state: MdmState; size?: 'lg' | 'sm' }) 
       />
     );
   }
+  // En el encabezado del inicio y de Ajustes solo va el logo: sin logo no se muestra el nombre de la empresa.
+  // Hay un <span> vacío para que el reloj siga a la derecha del encabezado.
+  if (size === 'sm') return <span aria-hidden />;
   return (
     <div className={`${size === 'lg' ? 'text-5xl' : 'text-xl'} font-bold tracking-widest`}>
       {state.companyName ?? 'NEX TV'}
