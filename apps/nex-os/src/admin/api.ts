@@ -31,6 +31,8 @@ export interface DeviceHealth {
   mode?: string;
   lock_kind?: string | null;
   hardened?: boolean;
+  /** Android sin Device Owner: la protección por accesibilidad (Guard) está activa. */
+  guard?: boolean;
   dns_filter?: boolean;
   firewall?: boolean;
   /** Android: filtro anti-piratería dentro de las apps de NEX TV (no hay DNS ni firewall de sistema). */

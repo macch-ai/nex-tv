@@ -37,7 +37,8 @@ export function healthIssues(d: Device): string[] {
   // En Android no existen el DNS ni el firewall del sistema: no es una falla, filtra dentro de las apps de NEX TV.
   if (h.platform === 'android') {
     return [
-      h.hardened === false && 'Sin modo TV cerrado (NEX TV no es Device Owner)',
+      // Sin Device Owner (firmwares sin device_admin) protege Guard: con Guard activa no es una falla.
+      h.hardened === false && h.guard !== true && 'Sin modo TV cerrado (NEX TV no es Device Owner)',
       h.webview_filter === false && 'Filtro anti-piratería caído',
       ...security,
     ].filter(Boolean) as string[];

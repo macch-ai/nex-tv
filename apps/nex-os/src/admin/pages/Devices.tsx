@@ -820,7 +820,11 @@ function DeviceDrawer({
             <section>
               <SectionTitle action={<HelpLink section="seguridad" label="qué hacer con un equipo posiblemente infectado" className="-my-1.5" />}>Seguridad</SectionTitle>
               <div className="divide-y divide-line rounded-xl border border-line px-4">
-                <HealthRow ok={h.hardened} label="Modo TV cerrado" />
+                {h.platform === 'android' && h.hardened === false && h.guard === true ? (
+                  <HealthRow ok label="Modo TV cerrado" detail="Protección de NEX activa" />
+                ) : (
+                  <HealthRow ok={h.hardened} label="Modo TV cerrado" />
+                )}
                 {h.platform === 'android' ? (
                   <>
                     <HealthRow ok={h.webview_filter} label="Filtro anti-piratería en apps de NEX TV" />
