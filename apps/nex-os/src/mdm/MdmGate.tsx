@@ -40,7 +40,6 @@ const ICON_PATHS: Record<string, string> = {
   calc: 'M5 3h14v18H5z M8 7h8 M8 12h2 M14 12h2 M8 16h2 M14 16h2',
   game: 'M7 10h4 M9 8v4 M15.5 10.5h.01 M17.5 12.5h.01 M4 15l1.5-6A3 3 0 0 1 8.4 7h7.2a3 3 0 0 1 2.9 2L20 15a2.5 2.5 0 0 1-4.6 1.3L14 14H10l-1.4 2.3A2.5 2.5 0 0 1 4 15z',
   play: 'M6 4l14 8-14 8z',
-  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4 12H2 M22 12h-2 M5.6 5.6l1.4 1.4 M17 17l1.4 1.4 M18.4 5.6L17 7 M7 17l-1.4 1.4',
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M3 12h18 M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z',
   store: 'M5 8h14l-1 12H6z M9 8a3 3 0 0 1 6 0 M9 12v0 M15 12v0',
   gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z',
@@ -107,26 +106,6 @@ function InstallFace({ app, size }: { app: MdmApp; size: 'sm' | 'lg' }) {
     >
       {app.name.trim().charAt(0).toUpperCase()}
     </span>
-  );
-}
-
-/**
- * Clima mostrado en el inicio. Datos de demostración: la fuente real (API + ciudad del equipo)
- * y el permiso de dominio en modo cerrado quedan pendientes de definir.
- */
-const WEATHER = { temp: '18°', cond: 'Parcial nublado' };
-
-function WeatherChip() {
-  return (
-    <div className="flex items-center space-x-3">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#ffd27a" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-9 w-9" aria-hidden>
-        {ICON_PATHS.sun.split(' M').map((seg, i) => (
-          <path key={i} d={(i === 0 ? '' : 'M') + seg} />
-        ))}
-      </svg>
-      <span className="text-4xl font-semibold tabular-nums">{WEATHER.temp}</span>
-      <span className="text-white/55 text-xl">{WEATHER.cond}</span>
-    </div>
   );
 }
 
@@ -477,7 +456,6 @@ function TvHome({ state, notice, noticeCount, onReadNotice }: {
             <div className="text-5xl font-semibold">{greeting}</div>
           )}
         </div>
-        <WeatherChip />
       </div>
 
       {state.paymentDue && (
