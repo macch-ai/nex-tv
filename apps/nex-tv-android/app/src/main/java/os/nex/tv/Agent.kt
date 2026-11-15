@@ -141,7 +141,8 @@ object Agent {
                 Kiosk.syncPackages(app)
                 publishUiState()
                 reportModeChange()
-                if (mode != "starting" && mode != "unpaired" && !Kiosk.isOwner(app)) {
+                // Sin Device Owner (firmwares sin device_admin) protege Guard: solo se avisa si tampoco está activa.
+                if (mode != "starting" && mode != "unpaired" && !Kiosk.isOwner(app) && !Guard.isEnabled(app)) {
                     addEventOnce("image_not_hardened")
                 }
 
@@ -573,6 +574,8 @@ object Agent {
             .put("mode", mode)
             .put("lock_kind", lockKind.ifEmpty { null } ?: JSONObject.NULL)
             .put("hardened", owner)
+            // Sin Device Owner, la protección por accesibilidad (Guard): el panel no lo marca como falla si está activa.
+            .put("guard", !owner && Guard.isEnabled(app))
             // En Android no hay dnsmasq/iptables: filtra el WebView (lista blanca por dominio).
             .put("dns_filter", false)
             .put("firewall", false)
