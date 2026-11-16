@@ -29,7 +29,6 @@ export const SEVERITY_META: Record<NoticeSeverity, { label: string; tone: 'neutr
 
 export type DurationId = '1h' | '6h' | '24h' | '3d' | '7d';
 export const DURATIONS: { id: DurationId; label: string; ms: number }[] = [
-  { id: '1h', label: '1 hora', ms: HOUR },
   { id: '6h', label: '6 horas', ms: 6 * HOUR },
   { id: '24h', label: '1 día', ms: DAY },
   { id: '3d', label: '3 días', ms: 3 * DAY },

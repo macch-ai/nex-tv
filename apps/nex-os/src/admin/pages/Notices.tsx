@@ -25,7 +25,6 @@ import {
   EMPTY_DRAFT,
   formatWhen,
   NOTICE_BODY_MAX,
-  NOTICE_MAX_DAYS,
   NOTICE_TITLE_MAX,
   NOTICES_PER_DAY,
   noticeStatus,
@@ -35,12 +34,9 @@ import {
   sentLastDay,
   SEVERITY_META,
   STATUS_LABELS,
-  TEMPLATES,
-  toLocalInput,
   validateNotice,
   type NoticeDraft,
   type NoticeStatus,
-  type NoticeTemplate,
 } from '../notices';
 import { useToast } from '../toast';
 import { Badge, Button, Card, Chip, EmptyState, ErrorText, IconButton, inputClass, Modal, PageHeader, SearchInput, Skeleton } from '../ui';
@@ -55,7 +51,6 @@ const CATEGORY_ICON: Record<NoticeCategory, LucideIcon> = {
   municipal: Landmark,
   general: Megaphone,
 };
-const CATEGORIES = Object.keys(CATEGORY_LABELS) as NoticeCategory[];
 
 const SEVERITY_ICON: Record<NoticeSeverity, LucideIcon> = { info: Info, importante: TriangleAlert, emergencia: Siren };
 const SEVERITIES: NoticeSeverity[] = ['info', 'importante', 'emergencia'];
@@ -406,7 +401,6 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
   const [draft, setDraft] = useState<NoticeDraft>(EMPTY_DRAFT);
-  const [templateId, setTemplateId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
@@ -440,18 +434,10 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
     setFormError(null);
   };
 
-  const applyTemplate = (t: NoticeTemplate) => {
-    setDraft((d) => ({ ...d, ...t.draft }));
-    setTemplateId(t.id);
-    setFormError(null);
-    titleRef.current?.focus();
-  };
-
   const reuse = (n: Notice) => {
     // Las zonas que ya no existen no se copian; si no queda ninguna, vuelve a "todos" y hay que elegir a propósito.
     const zoneIds = (n.zone_ids ?? []).filter((id) => zones.some((z) => z.zone_id === id));
     setDraft({ ...EMPTY_DRAFT, title: n.title, body: n.body, category: n.category, severity: n.severity, audience: zoneIds.length ? 'zones' : 'all', zoneIds });
-    setTemplateId(null);
     setFormError(null);
     titleRef.current?.focus();
     titleRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -503,8 +489,7 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
       }));
       toast.show(w.startsAt ? `Comunicado programado para ${formatWhen(w.start, at)}` : 'Comunicado enviado: aparece en los TV en el próximo minuto');
       setDraft(EMPTY_DRAFT);
-      setTemplateId(null);
-      setConfirming(false);
+        setConfirming(false);
       setListFilter('todos');
       reload();
     } catch (err) {
@@ -533,18 +518,16 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
     }
   };
 
-  const minLocal = toLocalInput(new Date(now));
-
   return (
     <>
       <PageHeader
         title="Comunicados"
         help={{ section: 'comunicados', label: 'comunicados' }}
-        subtitle={`Mensajes que aparecen en la pantalla de los TV de ${company.name}, en todos o solo en algunas zonas: cortes, alertas del clima, campañas de salud y avisos municipales.`}
+        subtitle={`Mensajes que aparecen en la pantalla de los TV de ${company.name}.`}
       />
 
       <div className="grid items-start gap-4 lg:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        <Card title="Nuevo comunicado" description="Lo ven los equipos que elijas la próxima vez que estén encendidos dentro del período del comunicado.">
+        <Card title="Nuevo comunicado" description="Sale en el momento y lo ven los TV encendidos mientras dure.">
           <form
             className="flex flex-col gap-5"
             onSubmit={(e) => {
@@ -552,15 +535,6 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
               review();
             }}
           >
-            <div>
-              <div className={`mb-2 ${LABEL}`}>Empezar con una plantilla</div>
-              <div className="flex flex-wrap gap-2">
-                {TEMPLATES.map((t) => (
-                  <Chip key={t.id} active={templateId === t.id} onClick={() => applyTemplate(t)}>{t.label}</Chip>
-                ))}
-              </div>
-            </div>
-
             <AudiencePicker
               draft={draft}
               zones={zones}
@@ -571,21 +545,6 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
               onToggle={(id) => set('zoneIds', draft.zoneIds.includes(id) ? draft.zoneIds.filter((z) => z !== id) : [...draft.zoneIds, id])}
               onAll={(ids) => set('zoneIds', ids)}
               goZones={goZones}
-            />
-
-            <RadioCards
-              label="Tema"
-              value={draft.category}
-              options={CATEGORIES}
-              onChange={(v) => set('category', v)}
-              className="grid grid-cols-2 gap-2 sm:grid-cols-5"
-              optionClass={(_o, selected) => `flex items-center gap-2 px-3 py-2.5 text-sm sm:flex-col sm:gap-1.5 sm:px-2 sm:py-3 sm:text-center sm:text-xs ${
-                selected ? 'border-accent bg-accent-soft text-accent' : 'border-line text-fg-3 hover:border-line-strong hover:text-fg-2'
-              }`}
-              render={(o) => {
-                const Icon = CATEGORY_ICON[o];
-                return <><Icon className="h-4 w-4 shrink-0" aria-hidden />{CATEGORY_LABELS[o]}</>;
-              }}
             />
 
             <RadioCards
@@ -644,48 +603,14 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
                 value={draft.body}
                 onChange={(e) => set('body', e.target.value)}
               />
-              {templateId && <span className="text-xs text-fg-4">Reemplazá lo que está entre [corchetes] con tus datos.</span>}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <div className={`mb-2 ${LABEL}`}>Cuándo empieza</div>
-                <div className="flex flex-wrap gap-2">
-                  <Chip active={draft.startMode === 'now'} onClick={() => set('startMode', 'now')}>Ahora</Chip>
-                  <Chip
-                    active={draft.startMode === 'later'}
-                    onClick={() => setDraft((d) => ({ ...d, startMode: 'later', startsAt: d.startsAt || toLocalInput(new Date(Date.now() + 3_600_000)) }))}
-                  >
-                    Programar
-                  </Chip>
-                </div>
-                {draft.startMode === 'later' && (
-                  <div className="mt-2">
-                    <label htmlFor={ids.start} className="sr-only">Fecha y hora de inicio</label>
-                    <input id={ids.start} type="datetime-local" className={inputClass} min={minLocal} value={draft.startsAt} onChange={(e) => set('startsAt', e.target.value)} />
-                  </div>
-                )}
-              </div>
-              <div>
-                <div className={`mb-2 ${LABEL}`}>Cuánto dura</div>
-                <div className="flex flex-wrap gap-2">
-                  {DURATIONS.map((d) => (
-                    <Chip key={d.id} active={draft.duration === d.id} onClick={() => set('duration', d.id)}>{d.label}</Chip>
-                  ))}
-                  <Chip
-                    active={draft.duration === 'custom'}
-                    onClick={() => setDraft((d) => ({ ...d, duration: 'custom', until: d.until || toLocalInput(new Date(Date.now() + 86_400_000)) }))}
-                  >
-                    Hasta una fecha
-                  </Chip>
-                </div>
-                {draft.duration === 'custom' && (
-                  <div className="mt-2">
-                    <label htmlFor={ids.until} className="sr-only">Fecha y hora de fin</label>
-                    <input id={ids.until} type="datetime-local" className={inputClass} min={minLocal} value={draft.until} onChange={(e) => set('until', e.target.value)} />
-                    <span className="mt-1 block text-xs text-fg-4">Hasta {NOTICE_MAX_DAYS} días.</span>
-                  </div>
-                )}
+            <div>
+              <div className={`mb-2 ${LABEL}`}>Cuánto dura</div>
+              <div className="flex flex-wrap gap-2">
+                {DURATIONS.map((d) => (
+                  <Chip key={d.id} active={draft.duration === d.id} onClick={() => set('duration', d.id)}>{d.label}</Chip>
+                ))}
               </div>
             </div>
 
@@ -700,7 +625,7 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
               </p>
               <div className="flex items-center gap-2">
                 {dirty && (
-                  <Button type="button" variant="ghost" onClick={() => { setDraft(EMPTY_DRAFT); setTemplateId(null); setFormError(null); }}>
+                  <Button type="button" variant="ghost" onClick={() => { setDraft(EMPTY_DRAFT); setFormError(null); }}>
                     Borrar
                   </Button>
                 )}
@@ -756,7 +681,7 @@ export default function NoticesPage({ company, deviceCount, devices = null, zone
             </div>
           ) : notices.length === 0 ? (
             <EmptyState icon={Megaphone} title="Todavía no enviaste comunicados">
-              Escribí el primero arriba. Podés partir de una plantilla y ver cómo queda antes de mandarlo.
+              Escribí el primero arriba y mirá cómo queda antes de mandarlo.
             </EmptyState>
           ) : shown.length === 0 ? (
             <EmptyState icon={Megaphone} title="No hay comunicados en este estado">Probá con otro filtro.</EmptyState>
