@@ -188,7 +188,7 @@ export default function BrandPage({ company, onChanged }: { company: Company; on
       <ErrorText error={error} />
       <div className="grid items-start gap-4 lg:gap-5 xl:grid-cols-5">
         <div className="flex flex-col gap-4 lg:gap-5 xl:col-span-3">
-          <Card title="Logo" description="Se ve en el arranque, el home y la pantalla de bloqueo.">
+          <Card title="Logo" description="Se ve al prender el TV (en lugar del logo de fábrica), en el inicio y en la pantalla de bloqueo. Al prender, el fondo es negro: usá un logo claro.">
             <div className="flex flex-wrap items-center gap-5">
               <div className="flex h-24 w-44 items-center justify-center rounded-xl border border-dashed border-line-strong bg-inset">
                 {logo ? <img src={logo} alt="Logo" className="max-h-20 max-w-40 object-contain" /> : <span className="text-xs text-fg-4">Sin logo</span>}

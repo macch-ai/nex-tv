@@ -24,6 +24,9 @@ object Provision {
 
     private fun su(): String? = SU_PATHS.firstOrNull { File(it).exists() }
 
+    /** Ruta de su, para otros módulos que necesitan root (BootBrand). */
+    fun suBinary(): String? = su()
+
     fun hasRoot(): Boolean = su() != null
 
     /** Pide root (el box puede mostrar un cartel para permitirlo) y se registra como Device Owner. */

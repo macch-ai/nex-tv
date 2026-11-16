@@ -129,6 +129,7 @@ object Agent {
                     lastSyncTry = t
                     if (syncRemote()) {
                         updateLogo()
+                        applyBootBrand()
                         config()?.let { cfg ->
                             if (mode == "active" || mode == "starting") ManagedApps.sync(app, cfg, mdmUrl)
                             maybeRunDiag(cfg)
@@ -536,6 +537,18 @@ object Agent {
 
     fun currentLogo(): File? =
         logoDir.listFiles()?.firstOrNull { LOGO_NAME.matches(it.name) }
+
+    /**
+     * Logo de arranque (BootBrand): el de la empresa o, si no cargó uno, el de NEX. Solo vinculado, y no si el logo de
+     * la empresa todavía no se pudo descargar (se volvería al de NEX por error).
+     */
+    private fun applyBootBrand() {
+        val cfg = config() ?: return
+        val logo = currentLogo()
+        val wanted = cfg.optJSONObject("company")?.str("logo_path").orEmpty()
+        if (wanted.isNotEmpty() && logo == null) return
+        BootBrand.sync(app, logo, dir)
+    }
 
     private fun updateLogo() {
         val path = config()?.optJSONObject("company")?.str("logo_path").orEmpty()
