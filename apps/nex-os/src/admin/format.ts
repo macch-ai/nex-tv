@@ -117,6 +117,10 @@ export const LOCK_REASONS = ['Falta de pago', 'Baja del servicio', 'Equipo robad
 export const RESTRICT_REASONS = ['Falta de pago', 'Pago parcial', 'Uso indebido'];
 
 export const AUDIT_LABELS: Record<string, string> = {
+  tech_pin_set: 'Cambió el PIN técnico',
+  tech_pin_cleared: 'Volvió al PIN técnico de NEX',
+  global_tech_pin_set: 'Cambió el PIN técnico global',
+  global_tech_pin_cleared: 'Borró el PIN técnico global',
   'device.lock': 'Bloqueó un equipo',
   'device.unlock': 'Desbloqueó un equipo',
   'device.restrict': 'Restringió un equipo',

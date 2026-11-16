@@ -168,11 +168,11 @@ function RootSetup({ state }: { state: MdmState }) {
   const [step, setStep] = useState<'idle' | 'pin' | 'busy'>('idle');
   const [message, setMessage] = useState('');
   const cancel = useCallback(() => { setStep('idle'); window.setTimeout(() => button.current?.focus(), 0); }, []);
-  const activate = useCallback(async () => {
+  const activate = useCallback(async (session: string) => {
     setStep('busy');
     setMessage('Activando… si aparece un cartel de root, aceptalo.');
     try {
-      const res = await fetch(`/agent/setup/root?token=${encodeURIComponent(state.wifiToken ?? '')}`, { cache: 'no-store' });
+      const res = await fetch(`/agent/setup/root?token=${encodeURIComponent(state.wifiToken ?? '')}&session=${encodeURIComponent(session)}`, { cache: 'no-store' });
       const data = await res.json();
       // Si sale bien, NEX TV se reabre solo en modo protegido.
       setMessage(data.ok ? 'NEX activado. Reiniciando la pantalla…' : data.error || 'No se pudo activar NEX.');
@@ -184,7 +184,7 @@ function RootSetup({ state }: { state: MdmState }) {
   }, [state.wifiToken]);
 
   if (step === 'pin') {
-    return <div className="fixed top-0 left-0 z-50 w-screen h-screen"><TechPin onOk={() => void activate()} onCancel={cancel} /></div>;
+    return <div className="fixed top-0 left-0 z-50 w-screen h-screen"><TechPin token={state.wifiToken} onOk={(s) => void activate(s)} onCancel={cancel} /></div>;
   }
   return <>
     <button ref={button} disabled={step === 'busy'} onClick={() => { setMessage(''); setStep('pin'); }} className="text-xl rounded-xl px-5 py-3 border border-amber-300/40 text-amber-100 outline-none focus:bg-white/20 focus:ring-2 focus:ring-sky-300">

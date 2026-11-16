@@ -3,6 +3,7 @@ import { Ban, Copy, KeyRound, Plug, ScrollText, TriangleAlert, UserPlus, Users }
 import { db, inviteMember, run, type ApiKey, type AuditEntry, type Company, type Member, type NewApiKey } from '../api';
 import { AUDIT_LABELS, copyText, formatDate, relativeTime } from '../format';
 import { useStepUp } from '../stepUp';
+import { TechPinCard } from '../TechPinCard';
 import { useToast } from '../toast';
 import { Badge, Button, Card, EmptyState, ErrorText, Field, IconButton, inputClass, Modal, PageHeader, Skeleton, Callout } from '../ui';
 
@@ -94,6 +95,7 @@ export function MembersPage({ company }: { company: Company }) {
             </div>
           </div>
         </Card>
+        <TechPinCard companyId={company.id} className="xl:col-span-2 xl:col-start-4" />
       </div>
     </>
   );

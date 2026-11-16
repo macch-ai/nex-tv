@@ -42,13 +42,21 @@ command -v npm >/dev/null || { echo "Node.js/npm are required" >&2; exit 1; }
 [ -f "$SOURCE_DIR/package.json" ] || { echo "NEX-OS source not found in $SOURCE_DIR (set NEX_OS_SOURCE_DIR)" >&2; exit 1; }
 
 export VITE_NEX_MDM=1
-# PIN del acceso técnico (la pantalla pide 4 dígitos): obligatorio en los APK para clientes. El del código es solo
-# para demo; sin este control, un APK de cliente saldría con el PIN que figura en el repo.
+# PIN del acceso técnico de respaldo: vale solo hasta que el equipo recibe el de su empresa o el global de NEX en la
+# primera sincronización (se cambian en el panel). Obligatorio en los APK para clientes; el de demo es 2468.
+# Viaja como hash PBKDF2-SHA256 con sal (TechPin.kt), nunca en texto plano dentro del APK.
 if [ "$DEMO" = false ]; then
 	[[ "${NEX_TECH_PIN:-}" =~ ^[0-9]{4}$ ]] && [ "$NEX_TECH_PIN" != 2468 ] ||
 		{ echo "NEX_TECH_PIN debe ser el PIN técnico de 4 dígitos, distinto del de demo" >&2; exit 1; }
-	export VITE_NEX_TECH_PIN="$NEX_TECH_PIN"
 fi
+command -v python3 >/dev/null || { echo "Falta python3 (para el hash del PIN técnico)" >&2; exit 1; }
+TECH_PIN_HASH=$(NEX_PIN="${NEX_TECH_PIN:-2468}" python3 -c '
+import hashlib, json, os
+salt = os.urandom(16)
+it = 20000
+h = hashlib.pbkdf2_hmac("sha256", os.environ["NEX_PIN"].encode(), salt, it)
+print(json.dumps({"v": 1, "salt": salt.hex(), "iter": it, "hash": h.hex()}, separators=(",", ":")))
+')
 if [ -n "${NEX_ADMIN_URL:-}" ]; then
 	case "$NEX_ADMIN_URL" in
 	https://*) export VITE_NEX_ADMIN_URL="$NEX_ADMIN_URL" ;;
@@ -85,6 +93,7 @@ export ANDROID_HOME
 "$DIR/gradlew" -p "$DIR" assembleRelease \
 	-Pnex.mdmUrl="$MDM_URL" -Pnex.mdmAnonKey="$MDM_KEY" -Pnex.baseDomains="${NEX_AGENT_BASE_DOMAINS:-}" -Pnex.demo="$DEMO" \
 	-Pnex.build="${NEX_BUILD:-1}" -Pnex.version="${NEX_VERSION:-0.1.0}" -Pnex.releasePubKey="$RELEASE_KEYS" \
+	-Pnex.techPinFallback="$TECH_PIN_HASH" \
 	${SIGN[@]+"${SIGN[@]}"}
 
 echo "APK: $DIR/app/build/outputs/apk/release/app-release.apk"

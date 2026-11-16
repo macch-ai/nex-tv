@@ -53,6 +53,8 @@ object Agent {
     private val demoStateFile get() = File(dir, "demo_state")
     private val noticesSeenFile get() = File(dir, "notices_seen")
     private val diagReqFile get() = File(dir, "diag_req")
+    /** PIN técnico global de NEX (hash), recibido mientras el equipo está sin vincular. */
+    private val globalPinFile get() = File(dir, "tech_pin_global.json")
     val logoDir: File get() = File(dir, "branding")
 
     val wifiToken: String = ByteArray(32).also { SecureRandom().nextBytes(it) }
@@ -273,6 +275,8 @@ object Agent {
                     .put("pairing_code", resp.opt("pairing_code"))
                     .put("pairing_expires_at", resp.opt("pairing_expires_at")).toString())
                 configFile.delete()
+                // El alta (mdm_device_register) no lo trae: solo se reemplaza cuando llega.
+                resp.optJSONObject("tech_pin")?.let { globalPinFile.writeAtomic(it.toString()) }
             }
             status == "paired" -> {
                 if (resp.optJSONObject("company")?.has("id") != true || resp.optJSONArray("apps") == null) {
@@ -645,6 +649,17 @@ object Agent {
     // optString devuelve "null" para valores null de JSON.
     private fun JSONObject.str(key: String): String =
         if (isNull(key)) "" else optString(key)
+
+    /**
+     * Hash del PIN técnico vigente (ver TechPin): vinculado, el de la empresa o el global que manda el servidor;
+     * sin vincular, el global guardado. null si el servidor nunca mandó uno: entonces vale el de respaldo del APK.
+     */
+    fun techPinHash(): JSONObject? {
+        if (!::dir.isInitialized) return null
+        val cfg = config()
+        if (cfg != null) return cfg.optJSONObject("tech_pin")
+        return globalPinFile.readOrNull()?.let { runCatching { JSONObject(it) }.getOrNull() }
+    }
 
     /** Configuración del último sync (solo lectura, para UiServer). */
     fun configSnapshot(): JSONObject? = if (::dir.isInitialized) config() else null
