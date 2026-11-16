@@ -219,6 +219,22 @@ function TechPanel({ state, dim, onClose }: { state: MdmState; dim: boolean; onC
       setMessage('No se pudieron abrir los Ajustes de Android.');
     }
   }, [state.wifiToken]);
+  // Firmwares sin ADB por red ni USB OTG: con root, NEX lo abre hasta el próximo reinicio.
+  const [adb, setAdb] = useState<'idle' | 'busy'>('idle');
+  const openAdb = useCallback(async () => {
+    setAdb('busy');
+    setMessage('Abriendo el ADB por red… si aparece un cartel de root, aceptalo.');
+    try {
+      const res = await fetch(`/agent/setup/adb?token=${encodeURIComponent(state.wifiToken ?? '')}`, { cache: 'no-store' });
+      const data = await res.json();
+      setMessage(data.ok
+        ? `ADB por red abierto${data.address ? ` en ${data.address}` : ''}. Se cierra al reiniciar el equipo.`
+        : data.error || 'No se pudo abrir el ADB por red.');
+    } catch {
+      setMessage('No se pudo abrir el ADB por red.');
+    }
+    setAdb('idle');
+  }, [state.wifiToken]);
 
   return (
     <Shell
@@ -255,6 +271,17 @@ function TechPanel({ state, dim, onClose }: { state: MdmState; dim: boolean; onC
             idle="Abrir"
             action="Abrir"
             onSelect={() => void openAndroidSettings()}
+          />
+        )}
+        {state.root && (
+          <ActionRow
+            navKey="adb"
+            icon={ICON.wrench}
+            title="Abrir ADB por red"
+            detail="Para instalar desde una computadora. Se cierra al reiniciar el equipo."
+            idle={adb === 'busy' ? 'Abriendo…' : 'Abrir'}
+            action="Abrir"
+            onSelect={() => { if (adb === 'idle') void openAdb(); }}
           />
         )}
       </div>

@@ -88,6 +88,13 @@ class UiServer(private val ctx: Context) {
             }
             return json(200, Provision.ownWithRoot(ctx))
         }
+        // Técnico (después del PIN): abre el ADB por red con root, hasta el próximo reinicio.
+        if (path == "/agent/setup/adb") {
+            if (!MessageDigest.isEqual(Agent.wifiToken.toByteArray(), url.getQueryParameter("token").orEmpty().toByteArray())) {
+                return json(403, JSONObject().put("ok", false).put("error", "Token inválido"))
+            }
+            return json(200, Provision.openAdbWithRoot())
+        }
         // Técnico (después del PIN): abre los Ajustes de Android y Guard lo deja usarlos un rato.
         if (path == "/agent/setup/settings") {
             if (!MessageDigest.isEqual(Agent.wifiToken.toByteArray(), url.getQueryParameter("token").orEmpty().toByteArray())) {
