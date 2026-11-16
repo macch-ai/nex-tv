@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
+import { TechPinCard } from './TechPinCard';
 import type { Session } from '@supabase/supabase-js';
 import {
   AppWindow,
@@ -957,7 +958,10 @@ export function Shell({ session }: { session: Session }) {
           ) : effective.scope === 'nex' && effective.section === 'catalogo' ? (
             <CatalogPage />
           ) : effective.scope === 'nex' && effective.section === 'firmware' ? (
-            <FirmwarePage companies={companies} />
+            <>
+              <FirmwarePage companies={companies} />
+              <div className="mt-4 max-w-xl lg:mt-5"><TechPinCard companyId={null} /></div>
+            </>
           ) : effective.scope === 'nex' && effective.section === 'pirateria' ? (
             <PiracyPage />
           ) : (

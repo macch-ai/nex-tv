@@ -880,6 +880,25 @@ Despliegue: `schema-mdm-v15.sql` después de v14, y antes de publicar el panel.
 
 Despliegue: `schema-mdm-v17.sql` en cualquier momento después de v15 (no depende del panel).
 
+## v18: PIN técnico desde el panel
+
+El PIN de Ajustes → Acceso técnico ya no va fijo en el APK:
+
+- **Empresa:** dueño o admin lo define en **Miembros → PIN técnico** (pide 2FA reciente). Si no define uno, vale el de NEX.
+- **NEX:** el super admin define el **global** en **Firmware → PIN técnico**. Vale en los equipos sin vincular y en las
+  empresas sin PIN propio.
+- **Nunca viaja en texto plano.** El panel calcula PBKDF2-SHA256 (sal de 16 bytes, 20.000 iteraciones) y el servidor
+  guarda solo `{"v":1,"salt","iter","hash"}` en `mdm_company_tech_pins` / `mdm_settings`, tablas sin acceso desde el panel.
+  `mdm_tech_pin_status` solo dice si hay PIN, nunca el hash.
+- **Equipo:** `mdm_device_sync` agrega `tech_pin` antes del `config_hash`, así un cambio de PIN llega aunque nada más
+  cambie. El agente (`TechPin.kt`) verifica el PIN, bloquea 5 min después de 5 errores y entrega una sesión de 10 min
+  que piden `/agent/setup/settings` y `/agent/setup/root`.
+- **Respaldo:** hasta la primera sincronización vale el PIN del build (`NEX_TECH_PIN`), que `build.sh` ahora mete como
+  hash (`BuildConfig.TECH_PIN_FALLBACK`) y ya no en texto plano en la web.
+
+Despliegue: `schema-mdm-v18.sql` antes de mergear el panel (la tarjeta llama a las funciones nuevas). Los APK viejos
+siguen con su PIN fijo hasta actualizarse.
+
 ## Root (su) en los TX6698
 
 Los TX6698 traen `su` (firmware userdebug) y el kit de instalación lo usa para copiar NEX al sistema. Desde NEX TV 2.1.1,

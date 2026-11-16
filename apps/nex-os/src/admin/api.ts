@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { TechPinHash } from './techPin';
 import { getSupabaseErrorMessage } from '../lib/supabase';
 import { getAdminSupabase } from './supabaseAdmin';
 import type { NetDiag, NetQuick } from './health';
@@ -443,4 +444,20 @@ export async function inviteMember(company: string, email: string, role: 'admin'
     throw new ApiError(body?.message ?? 'No se pudo invitar. Probá de nuevo en unos minutos.', body?.code);
   }
   return data ?? { invited: false };
+}
+
+/** PIN técnico (schema-mdm-v18.sql): si la empresa tiene uno propio y si NEX definió el global. Nunca trae el hash. */
+export interface TechPinStatus {
+  company: boolean | null;
+  global: boolean;
+}
+
+export async function getTechPinStatus(company: string | null): Promise<TechPinStatus> {
+  return run(db().rpc('mdm_tech_pin_status', { p_company: company }));
+}
+
+/** company null = el global de NEX (solo super admin). pin null = lo borra. Pide 2FA reciente (P0401). */
+export async function setTechPin(company: string | null, pin: TechPinHash | null): Promise<void> {
+  if (company) await run(db().rpc('mdm_set_tech_pin', { p_company: company, p_pin: pin }));
+  else await run(db().rpc('mdm_set_global_tech_pin', { p_pin: pin }));
 }

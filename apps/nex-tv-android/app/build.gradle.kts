@@ -32,6 +32,8 @@ android {
         buildConfigField("String", "RELEASE_PUB_KEYS", "\"${nexProp("nex.releasePubKey")}\"")
         // Dominios que siempre se permiten además de Supabase (separados por espacio).
         buildConfigField("String", "BASE_DOMAINS", "\"${nexProp("nex.baseDomains")}\"")
+        // PIN técnico de respaldo, como hash PBKDF2 (build.sh): vale hasta que llega el de la empresa o el global.
+        buildConfigField("String", "TECH_PIN_FALLBACK", "\"${nexProp("nex.techPinFallback").replace("\"", "\\\"")}\"")
         // Demo sin backend: el agente simula al servidor (ver Demo.kt). Nunca en equipos de clientes.
         buildConfigField("boolean", "DEMO", "${nexProp("nex.demo") == "true"}")
     }

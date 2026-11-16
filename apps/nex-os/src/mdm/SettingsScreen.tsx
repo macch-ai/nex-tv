@@ -15,7 +15,6 @@ import { parseWifiStatus, type WifiStatus } from './wifi';
 const NEX_VERSION = (import.meta.env.VITE_NEX_VERSION as string | undefined) ?? '0.1';
 
 /** PIN del acceso técnico (se define al compilar; por defecto, solo para demo). */
-const TECH_PIN = (import.meta.env.VITE_NEX_TECH_PIN as string | undefined) ?? '2468';
 
 const WIFI_STATUS_URL = '/agent/wifi/status';
 const NETWORK_POLL_MS = 5000;
@@ -117,10 +116,15 @@ function DeviceCard({ state, network, children }: { state: MdmState; network: Ne
 }
 
 /** Teclado numérico para el acceso técnico. El PIN no viaja a ningún lado; es una barrera local. */
-export function TechPin({ onOk, onCancel }: { onOk: () => void; onCancel: () => void }) {
+/**
+ * PIN del acceso técnico. Lo verifica el agente (TechPin.kt) contra el que definió la empresa en el panel; si es
+ * correcto devuelve una sesión de 10 minutos que piden las acciones de técnico (/agent/setup/...).
+ */
+export function TechPin({ token, onOk, onCancel }: { token: string | null; onOk: (session: string) => void; onCancel: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [val, setVal] = useState('');
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✕'];
 
   useEffect(() => {
@@ -135,20 +139,34 @@ export function TechPin({ onOk, onCancel }: { onOk: () => void; onCancel: () => 
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
+  const verify = async (pin: string) => {
+    setChecking(true);
+    let error = 'No se pudo verificar el PIN.';
+    try {
+      const res = await fetch(`/agent/tech/pin?token=${encodeURIComponent(token ?? '')}&pin=${encodeURIComponent(pin)}`, { cache: 'no-store' });
+      const data = (await res.json()) as { ok?: boolean; error?: string | null; session?: string };
+      if (data.ok && typeof data.session === 'string') {
+        window.setTimeout(() => onOk(data.session as string), 150);
+        return;
+      }
+      error = data.error || 'PIN incorrecto. Probá de nuevo.';
+    } catch {
+      // Sin agente que responda: no se entra.
+    } finally {
+      setChecking(false);
+    }
+    setErr(error);
+    window.setTimeout(() => setVal(''), 500);
+  };
+
   const press = (d: string) => {
+    if (checking) return;
     if (d === '✕') return onCancel();
     if (d === '⌫') return setVal((v) => v.slice(0, -1));
-    setErr(false);
+    setErr(null);
     const next = (val + d).slice(0, 4);
     setVal(next);
-    if (next.length === 4) {
-      if (next === TECH_PIN) {
-        window.setTimeout(onOk, 150);
-      } else {
-        setErr(true);
-        window.setTimeout(() => setVal(''), 500);
-      }
-    }
+    if (next.length === 4) void verify(next);
   };
 
   const onKeyNav = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -185,7 +203,7 @@ export function TechPin({ onOk, onCancel }: { onOk: () => void; onCancel: () => 
         ))}
       </div>
       <p role="status" className={`h-8 mt-4 text-2xl ${err ? 'text-red-300' : 'text-transparent'}`}>
-        {err ? 'PIN incorrecto. Probá de nuevo.' : ' '}
+        {err ?? ' '}
       </p>
       <div ref={ref} onKeyDown={onKeyNav} className="grid grid-cols-3 gap-4 mt-4">
         {keys.map((k, i) => (
@@ -206,19 +224,19 @@ export function TechPin({ onOk, onCancel }: { onOk: () => void; onCancel: () => 
 }
 
 /** Panel técnico (tras el PIN): diagnóstico del equipo y acciones de servicio. */
-function TechPanel({ state, dim, onClose }: { state: MdmState; dim: boolean; onClose: () => void }) {
+function TechPanel({ state, session, dim, onClose }: { state: MdmState; session: string; dim: boolean; onClose: () => void }) {
   const network = useNetwork();
   const [message, setMessage] = useState('');
   // Sin Device Owner, Guard devuelve al inicio cualquier app no permitida: esto le da al técnico unos minutos.
   const openAndroidSettings = useCallback(async () => {
     try {
-      const res = await fetch(`/agent/setup/settings?token=${encodeURIComponent(state.wifiToken ?? '')}`, { cache: 'no-store' });
+      const res = await fetch(`/agent/setup/settings?token=${encodeURIComponent(state.wifiToken ?? '')}&session=${encodeURIComponent(session)}`, { cache: 'no-store' });
       const data = await res.json();
-      if (!data.ok) setMessage('No se pudieron abrir los Ajustes de Android.');
+      if (!data.ok) setMessage(data.error || 'No se pudieron abrir los Ajustes de Android.');
     } catch {
       setMessage('No se pudieron abrir los Ajustes de Android.');
     }
-  }, [state.wifiToken]);
+  }, [state.wifiToken, session]);
 
   return (
     <Shell
@@ -282,10 +300,11 @@ export function SettingsScreen({ state, appearance, setAppearance, brand, clock,
   // Fila que recupera el foco al volver de una pantalla secundaria.
   const [focusKey, setFocusKey] = useState('wifi');
   const backToMain = useCallback(() => setView('main'), []);
+  const [session, setSession] = useState('');
 
   if (view === 'wifi') return <WifiScreen token={state.wifiToken} dim={appearance.dimWallpaper} onClose={backToMain} />;
-  if (view === 'pin') return <TechPin onOk={() => setView('panel')} onCancel={backToMain} />;
-  if (view === 'panel') return <TechPanel state={state} dim={appearance.dimWallpaper} onClose={backToMain} />;
+  if (view === 'pin') return <TechPin token={state.wifiToken} onOk={(s) => { setSession(s); setView('panel'); }} onCancel={backToMain} />;
+  if (view === 'panel') return <TechPanel state={state} session={session} dim={appearance.dimWallpaper} onClose={backToMain} />;
 
   const open = (next: View, key: string) => {
     setFocusKey(key);

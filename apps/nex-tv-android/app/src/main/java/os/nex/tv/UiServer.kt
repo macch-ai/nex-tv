@@ -81,10 +81,20 @@ class UiServer(private val ctx: Context) {
                 }
             }.getOrElse { json(500, JSONObject().put("ok", false).put("error", "Wi-Fi no disponible")) }
         }
+        // PIN técnico: lo verifica el agente contra el hash (TechPin); si es correcto, entrega una sesión de 10 min.
+        if (path == "/agent/tech/pin") {
+            if (!MessageDigest.isEqual(Agent.wifiToken.toByteArray(), url.getQueryParameter("token").orEmpty().toByteArray())) {
+                return json(403, JSONObject().put("ok", false).put("error", "Token inválido"))
+            }
+            return json(200, TechPin.check(url.getQueryParameter("pin").orEmpty()))
+        }
         // Mismo token que el Wi-Fi: solo lo conoce la UI propia (ver Agent.wifiToken).
         if (path == "/agent/setup/root") {
             if (!MessageDigest.isEqual(Agent.wifiToken.toByteArray(), url.getQueryParameter("token").orEmpty().toByteArray())) {
                 return json(403, JSONObject().put("ok", false).put("error", "Token inválido"))
+            }
+            if (!TechPin.sessionOk(url.getQueryParameter("session").orEmpty())) {
+                return json(403, JSONObject().put("ok", false).put("error", "Ingresá el PIN técnico de nuevo."))
             }
             return json(200, Provision.ownWithRoot(ctx))
         }
@@ -92,6 +102,9 @@ class UiServer(private val ctx: Context) {
         if (path == "/agent/setup/settings") {
             if (!MessageDigest.isEqual(Agent.wifiToken.toByteArray(), url.getQueryParameter("token").orEmpty().toByteArray())) {
                 return json(403, JSONObject().put("ok", false).put("error", "Token inválido"))
+            }
+            if (!TechPin.sessionOk(url.getQueryParameter("session").orEmpty())) {
+                return json(403, JSONObject().put("ok", false).put("error", "Ingresá el PIN técnico de nuevo."))
             }
             Guard.pause()
             val opened = runCatching {
